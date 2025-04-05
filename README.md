@@ -185,5 +185,7 @@ The **Spring Boot integration** will:
 
 ## 📜 License
 
-**MIT License** — free to use, fork, and extend.  
+Licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).  
+You may freely use, modify, and distribute this project under the terms of the license. 
+
 Build better orchestrated systems ⚙️
