@@ -1,0 +1,130 @@
+syntax = "proto3";
+
+package orchestrator;
+
+option java_multiple_files = true;
+option java_package = "com.orchestrator.proto";
+option java_outer_classname = "OrchestrationProto";
+
+// --- Activity ---
+
+message ActivityTask {
+  string serviceName = 1;
+  string methodName = 2;
+  string sagaId = 3;
+  string sagaName = 4;
+  string stepId = 5;
+  string type = 6;
+  bytes input = 7;
+  string queue = 8;
+}
+
+message ActivityResult {
+  string sagaId = 1;
+  string sagaName = 2;
+  string stepType = 3;
+  string stepId = 4;
+  string queue = 5;
+  bool success = 6;
+  bytes output = 7;
+  string error = 8;
+}
+
+// --- Interpreter Worker ---
+
+message InterpreterWorkerTask {
+  string sagaId = 1;
+  string stepId = 2;
+  string type = 3;
+  string sagaType = 4;
+  bool success = 5;
+  string queue = 6;
+}
+
+message InterpreterWorkerResult {
+  string serviceName = 1;
+  string methodName = 2;
+  string taskType = 3;
+  string queue = 4;
+  string sagaName = 5;
+  string sagaId = 6;
+  string stepId = 7;
+  bool success = 8;
+  bytes output = 9;
+  string error = 10;
+}
+
+message ExecutionStep {
+  string stepType = 1;
+  string sagaType = 2;
+  string queue = 3;
+  repeated string dependencies = 4;
+  repeated string rollbackStepIds = 5;
+}
+
+message ExecutionPlan {
+  string name = 1;
+  repeated ExecutionStep steps = 2;
+}
+
+service ActivityTaskService {
+  rpc PollTask(PollTaskRequest) returns (ActivityTaskResponse);
+  rpc SubmitResult(ActivityResult) returns (Empty);
+}
+
+message PollTaskRequest {
+  string queue = 1;
+}
+
+message ActivityTaskResponse {
+  ActivityTask task = 1;
+}
+
+message Empty {}
+
+service InterpreterWorkerService {
+  rpc SendExecutionPlan(SendExecutionPlanRequest) returns (Empty);
+  rpc PollTasks(Empty) returns (InterpreterWorkerTaskList);
+  rpc SubmitResults(InterpreterWorkerResultList) returns (Empty);
+  rpc PollData(PollDataRequest) returns (DataResponse);
+  rpc PollWorkflowRequest(PollWorkflowRequestInput) returns (DataResponse);
+}
+
+message SendExecutionPlanRequest {
+  repeated ExecutionPlan plans = 1;
+}
+
+message InterpreterWorkerTaskList {
+  repeated InterpreterWorkerTask tasks = 1;
+}
+
+message InterpreterWorkerResultList {
+  repeated InterpreterWorkerResult results = 1;
+}
+
+message PollDataRequest {
+  string sagaId = 1;
+  string stepId = 2;
+  string stepName = 3;
+}
+
+message PollWorkflowRequestInput {
+  string sagaId = 1;
+}
+
+message DataResponse {
+  bytes data = 1;
+}
+
+service WorkflowEngineService {
+  rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
+}
+
+message StartWorkflowRequest {
+  string sagaName = 1;
+  bytes inputData = 2;
+}
+
+message StartWorkflowResponse {
+  string sagaId = 1;
+}

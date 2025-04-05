@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: ${application.name:orcestrator-engine}
+    version: 1.0.0
+
+server:
+  port: ${custom.server.port:8000}
+
+grpc:
+  server:
+    port: 8100
+
+logging:
+  level:
+    root: INFO
