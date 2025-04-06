@@ -172,6 +172,7 @@ fun OrchestrationDefinition<*, *>.compileToExecutionPlan(): ExecutionPlan {
 
         executionSteps += ExecutionStep(
             sagaType = name,
+            isRollback = false,
             stepType = step.type,
             queue = step.queue,
             dependencies = dependsOn,
@@ -189,6 +190,7 @@ fun OrchestrationDefinition<*, *>.compileToExecutionPlan(): ExecutionPlan {
 
         executionSteps += ExecutionStep(
             sagaType = name,
+            isRollback = true,
             stepType = rollback.type,
             queue = rollback.queue,
             dependencies = dependsOn,
@@ -214,6 +216,7 @@ fun ExecutionPlan.toProto(): com.orchestrator.proto.ExecutionPlan = com.orchestr
         com.orchestrator.proto.ExecutionStep
             .newBuilder()
             .setQueue(it.queue)
+            .setIsRollback(it.isRollback)
             .setSagaType(it.sagaType)
             .setStepType(it.stepType)
             .addAllDependencies(it.dependencies)
@@ -225,6 +228,7 @@ fun ExecutionPlan.toProto(): com.orchestrator.proto.ExecutionPlan = com.orchestr
 
 data class ExecutionStep(
     val stepType: String,
+    val isRollback: Boolean = false,
     val sagaType: String,
     val queue: String,
     val dependencies: List<String>,

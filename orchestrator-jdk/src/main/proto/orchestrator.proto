@@ -58,8 +58,9 @@ message ExecutionStep {
   string stepType = 1;
   string sagaType = 2;
   string queue = 3;
-  repeated string dependencies = 4;
-  repeated string rollbackStepIds = 5;
+  bool isRollback = 4;
+  repeated string dependencies = 5;
+  repeated string rollbackStepIds = 6;
 }
 
 message ExecutionPlan {

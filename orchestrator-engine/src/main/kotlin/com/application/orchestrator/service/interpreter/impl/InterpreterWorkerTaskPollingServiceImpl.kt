@@ -1,7 +1,7 @@
 package com.application.orchestrator.service.interpreter.impl
 
 import com.application.orchestrator.data.OrchestratorActivityResultData
-import com.application.orchestrator.data.OrchestratorSagaData
+import com.application.orchestrator.data.OrchestratorWorkflowData
 import com.application.orchestrator.engine.OrchestratorEngine
 import com.application.orchestrator.service.interpreter.InterpreterQueueManager
 import com.application.orchestrator.service.interpreter.InterpreterWorkerTaskPollingService
@@ -16,7 +16,7 @@ class InterpreterWorkerTaskPollingServiceImpl(
     private val orchestratorEngine: OrchestratorEngine,
     private val interpreterQueueManager: InterpreterQueueManager,
     private val activityResultData: OrchestratorActivityResultData,
-    private val orchestratorSagaData: OrchestratorSagaData
+    private val orchestratorWorkflowData: OrchestratorWorkflowData
 ) :
     InterpreterWorkerTaskPollingService {
 
@@ -33,14 +33,14 @@ class InterpreterWorkerTaskPollingServiceImpl(
     }
 
     override suspend fun pollData(sagaId: String, stepId: String, stepName: String): ByteString {
-        println("Requested result for sagaId=${sagaId} stepType=${stepName} from stepId=${stepId}")
+        println("Requested result for workflowId=${sagaId} stepType=${stepName} from stepId=${stepId}")
         return activityResultData.getActivityResult(sagaId, stepName) ?: ByteString.EMPTY
     }
 
     override suspend fun pollWorkflowRequest(sagaId: String): ByteString {
-        println("Requested request for sagaId=${sagaId}")
-        orchestratorSagaData.pollWorkflowRequest(sagaId)
-        return orchestratorSagaData.pollWorkflowRequest(sagaId) ?: ByteString.EMPTY
+        println("Requested request for workflowId=${sagaId}")
+        orchestratorWorkflowData.pollWorkflowRequest(sagaId)
+        return orchestratorWorkflowData.pollWorkflowRequest(sagaId) ?: ByteString.EMPTY
     }
 
 }

@@ -1,5 +1,9 @@
 # ⚙️ WorkflowEngine — Kotlin DSL Orchestration Framework
 
+| ![img](docs/readmi-picture.png) | ![img](docs/readmi-img2.png) |
+|-------------------|------------------------------|
+
+
 > Coroutine-based workflow engine with a powerful type-safe DSL, rollback support, execution graph planning, and gRPC integration.
 
 ---
@@ -182,10 +186,6 @@ The **Spring Boot integration** will:
 - [ ] Cross-region worker distribution
 
 ---
-
-<p align="center">
-  <img src="docs/readmi-picture.png" alt="Choose your engine wisely" width="1024" height=""/>
-</p>
 
 ## 📜 License
 

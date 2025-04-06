@@ -1,47 +1,58 @@
 package com.application.orchestrator.engine
 
 import com.application.orchestrator.data.OrchestratorActivityResultData
-import com.application.orchestrator.data.OrchestratorSagaData
+import com.application.orchestrator.data.OrchestratorSagaStepData
+import com.application.orchestrator.data.OrchestratorWorkflowData
+import com.application.orchestrator.data.WorkflowLockManager
+import com.application.orchestrator.data.impl.WorkflowStep
 import com.application.orchestrator.service.activity.ActivityQueueManager
 import com.application.orchestrator.service.interpreter.InterpreterQueueManager
 import com.application.orchestrator.service.interpreter.toActivityTask
 import com.application.orchestrator.service.interpreter.toModel
 import com.google.protobuf.ByteString
 import com.orchestrator.interpreter.dsl.ExecutionPlan
+import com.orchestrator.interpreter.dsl.ExecutionStep
 import com.orchestrator.proto.ActivityResult
 import com.orchestrator.proto.InterpreterWorkerResult
 import com.orchestrator.proto.InterpreterWorkerTask
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import java.time.Duration
+import java.time.Instant
 import java.util.*
 
 @Service
 class OrchestratorEngine(
     private val activityQueueManager: ActivityQueueManager,
     private val interpreterQueueManager: InterpreterQueueManager,
-    private val orchestratorSagaData: OrchestratorSagaData,
-    private val orchestratorActivityResultData: OrchestratorActivityResultData
+    private val orchestratorWorkflowData: OrchestratorWorkflowData,
+    private val orchestratorSagaStepData: OrchestratorSagaStepData,
+    private val orchestratorActivityResultData: OrchestratorActivityResultData,
+    private val lockManager: WorkflowLockManager
 ) {
-    //sagaName -> instance
+    private val logger = LoggerFactory.getLogger(OrchestratorEngine::class.java)
+    private val instanceId = UUID.randomUUID().toString()
+
     private val executionPlans = mutableMapOf<String, ExecutionPlan>()
 
     suspend fun startWorkflow(sagaName: String, inputData: ByteString): String {
-        println("Started workflow for sagaName=${sagaName}")
+        logger.info("Started workflow for sagaName=${sagaName}")
         val executionPlan = executionPlans[sagaName] ?: return ""
         val sagaId = UUID.randomUUID().toString()
-
-        orchestratorActivityResultData.initActivityResult(sagaId)
 
         val firstStepId = UUID.randomUUID().toString()
         val firstExecutionStep = executionPlan.steps.first()
 
-        orchestratorSagaData.createSagaInstance(sagaId, sagaName, inputData)
-        val interpreterWorkerTask = firstExecutionStep.toModel(true, firstStepId, sagaName)
+        orchestratorWorkflowData.createSagaInstance(sagaId, sagaName, inputData)
+        val interpreterWorkerTask = firstExecutionStep.toModel(true, firstStepId, sagaId)
         interpreterQueueManager.submitTask(interpreterWorkerTask)
+
+        orchestratorSagaStepData.saveStep(sagaId, firstExecutionStep.toWorkflowStep(firstStepId, sagaId))
         return sagaId
     }
 
     suspend fun submitExecutionPlain(executionPlans: List<ExecutionPlan>) {
-        println("Received execution plans steps=$executionPlans")
+        logger.info("Received execution plans steps=$executionPlans")
         executionPlans.forEach { executionPlan ->
             this.executionPlans.computeIfAbsent(executionPlan.name) { executionPlan }
             val queues = executionPlan.steps.map { it.queue }.toSet()
@@ -51,84 +62,136 @@ class OrchestratorEngine(
 
     suspend fun submitInterpreterResults(interpreterResults: List<InterpreterWorkerResult>) {
         interpreterResults.forEach { interpreterResult ->
-            if (interpreterResult.taskType == "onFinish") {
-                println("Task was completed")
-            } else {
-                val activityTask = interpreterResult.toActivityTask()
-                activityQueueManager.submitTask(activityTask)
-                println("Submitted next activity task ActivityTask=${activityTask}")
+            val acquired = lockManager.tryAcquire(interpreterResult.sagaId, instanceId, Duration.ofSeconds(30))
+            if (!acquired) return
+            try {
+                if (interpreterResult.taskType == "onFinish") {
+                    logger.info("Task was completed")
+                    orchestratorWorkflowData.updateSagaIfPresent(interpreterResult.sagaId) { _, workflowInstance ->
+                        workflowInstance.response = interpreterResult.output
+                        workflowInstance
+                    }
+                } else {
+                    val activityTask = interpreterResult.toActivityTask()
+                    activityQueueManager.submitTask(activityTask)
+                    logger.info("Submitted next activity task ActivityTask=${activityTask}")
+                }
+            } finally {
+                lockManager.release(interpreterResult.sagaId, instanceId)
             }
         }
     }
 
     suspend fun submitActivityResult(activityResult: ActivityResult) {
-        println("Received activity result activityResult=${activityResult}")
-        val executionPlan = executionPlans[activityResult.sagaName]
+        val acquired = lockManager.tryAcquire(activityResult.sagaId, instanceId, Duration.ofSeconds(30))
+        if (!acquired) return
 
-        if (activityResult.success) {
-            val isUpdated = orchestratorActivityResultData.updateActivityResul(activityResult.sagaId, activityResult.stepId, activityResult.output)
+        try {
+            logger.info("Received activity result activityResult=${activityResult}")
+            val executionPlan = executionPlans[activityResult.sagaName] ?: return
 
-            if (isUpdated) {
-                val readySteps = executionPlan?.steps?.filter { step ->
-                    step.dependencies.contains(activityResult.stepType)
-                }
-                readySteps?.forEach { step ->
-                    val interpreterWorkerTask = step.toModel(true, UUID.randomUUID().toString(), activityResult.sagaId)
-                    interpreterQueueManager.submitTask(interpreterWorkerTask)
-                    println("Submitted next interpreter task InterpreterWorkerTask=${interpreterWorkerTask}")
-                }
-                if (readySteps?.isEmpty() == true) {
-                    orchestratorSagaData.updateSagaIfPresent(activityResult.sagaId) { _, sagaInstance ->
-                        val sagaStatus =
-                            if (sagaInstance.sagaStatus == SagaStatus.UNDER_ROLLBACK) SagaStatus.FAILED else SagaStatus.COMPLETED
-                        sagaInstance.copy(sagaStatus = sagaStatus)
-                    }?.let {
-                        val interpreterWorkerTask = InterpreterWorkerTask.newBuilder()
-                            .setSagaId(activityResult.sagaId)
-                            .setSagaType(activityResult.sagaName)
-                            .setStepId(activityResult.stepId)
-                            .setType("onFinish")
-                            .setQueue("")
-                            .setSuccess(it.sagaStatus == SagaStatus.COMPLETED)
-                            .build()
-                        interpreterQueueManager.submitTask(interpreterWorkerTask)
-                    }
-                }
+            if (activityResult.success) {
+                startNextStep(activityResult, executionPlan)
+            } else {
+                startRollbackChain(activityResult, executionPlan)
             }
-        } else {
-            orchestratorSagaData.updateSagaIfPresent(activityResult.sagaId) { _, sagaInstance ->
-                val newSagaInstance = sagaInstance.copy(sagaStatus = SagaStatus.UNDER_ROLLBACK)
-                newSagaInstance
-            }?.let {
-                val currentStep = executionPlan?.steps?.find { it.stepType == activityResult.stepType } ?: return
-                val rollbackSteps = executionPlan.steps.filter { it.stepType in currentStep.rollbackStepIds }
-                rollbackSteps.forEach { step ->
-                    val interpreterWorkerTask = step.toModel(false, UUID.randomUUID().toString(), activityResult.sagaId)
-                    interpreterQueueManager.submitTask(interpreterWorkerTask)
-                }
-            }
+        } finally {
+            lockManager.release(activityResult.sagaId, instanceId)
+        }
+    }
+
+    private suspend fun startRollbackChain(activityResult: ActivityResult, executionPlan: ExecutionPlan) {
+        orchestratorWorkflowData.updateSagaIfPresent(activityResult.sagaId) { _, sagaInstance ->
+            val newSagaInstance = sagaInstance.copy(workflowStatus = WorkflowStatus.UNDER_ROLLBACK)
+            newSagaInstance
+        }
+
+        orchestratorSagaStepData.updateStepStatus(activityResult.sagaId, activityResult.stepId, StepStatus.FAILED)
+
+        val currentStep = executionPlan.steps.find { it.stepType == activityResult.stepType } ?: return
+        executionPlan.steps.filter { it.stepType in currentStep.rollbackStepIds }.forEach { step ->
+            val stepId = UUID.randomUUID().toString()
+            val interpreterWorkerTask = step.toModel(false, stepId, activityResult.sagaId)
+            orchestratorSagaStepData.saveStep(
+                sagaId = activityResult.sagaId, step.toWorkflowStep(stepId, activityResult.sagaId)
+            )
+            interpreterQueueManager.submitTask(interpreterWorkerTask)
+        }
+
+    }
+
+    private suspend fun startNextStep(activityResult: ActivityResult, executionPlan: ExecutionPlan) {
+        orchestratorActivityResultData.updateActivityResul(
+            activityResult.sagaId,
+            activityResult.stepId,
+            activityResult.output
+        )
+        orchestratorSagaStepData.updateStepStatus(activityResult.sagaId, activityResult.stepId, StepStatus.COMPLETED)
+
+        val readySteps = executionPlan.steps.filter { step -> step.dependencies.contains(activityResult.stepType) }
+        readySteps.forEach { step ->
+            val stepId = UUID.randomUUID().toString()
+            val interpreterWorkerTask = step.toModel(true, stepId, activityResult.sagaId)
+            orchestratorSagaStepData.saveStep(
+                sagaId = activityResult.sagaId, step.toWorkflowStep(stepId, activityResult.sagaId)
+            )
+            interpreterQueueManager.submitTask(interpreterWorkerTask)
+            logger.info("Submitted next interpreter task InterpreterWorkerTask=${interpreterWorkerTask}")
+        }
+        if (readySteps.isEmpty()) {
+            startFinishStep(activityResult)
+        }
+
+    }
+
+    private suspend fun startFinishStep(activityResult: ActivityResult) {
+        orchestratorWorkflowData.updateSagaIfPresent(activityResult.sagaId) { _, sagaInstance ->
+            val workflowStatus =
+                if (sagaInstance.workflowStatus == WorkflowStatus.UNDER_ROLLBACK) WorkflowStatus.FAILED else WorkflowStatus.COMPLETED
+            sagaInstance.copy(workflowStatus = workflowStatus)
+        }?.let {
+            val interpreterWorkerTask = InterpreterWorkerTask.newBuilder()
+                .setSagaId(activityResult.sagaId)
+                .setSagaType(activityResult.sagaName)
+                .setStepId(activityResult.stepId)
+                .setType("onFinish")
+                .setQueue("")
+                .setSuccess(it.workflowStatus == WorkflowStatus.COMPLETED)
+                .build()
+            interpreterQueueManager.submitTask(interpreterWorkerTask)
         }
     }
 }
 
 enum class StepStatus {
     PENDING,
-    READY,
     IN_PROGRESS,
+    FAILED,
     COMPLETED
 }
 
-enum class SagaStatus {
+enum class WorkflowStatus {
     IN_PROGRESS,
     UNDER_ROLLBACK,
     COMPLETED,
     FAILED
 }
 
-data class SagaInstance(
-    val sagaStatus: SagaStatus,
-    val sagaId: String,
-    val sagaName: String,
+data class WorkflowInstance(
+    val workflowStatus: WorkflowStatus,
+    val workflowId: String,
+    val workflowName: String,
     val request: ByteString,
-    val response: ByteString?,
+    var response: ByteString?,
+)
+
+fun ExecutionStep.toWorkflowStep(stepId: String, sagaId: String): WorkflowStep = WorkflowStep(
+    stepId = stepId,
+    workflowId = sagaId,
+    type = stepType,
+    status = StepStatus.PENDING,
+    queue = queue,
+    timeout = Duration.ofSeconds(10),
+    updatedAt = Instant.now(),
+    maxAttempts = 3
 )

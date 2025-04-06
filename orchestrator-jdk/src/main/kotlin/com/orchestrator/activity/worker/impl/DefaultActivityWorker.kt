@@ -8,7 +8,6 @@ import com.orchestrator.proto.ActivityResult
 import com.orchestrator.proto.ActivityTask
 import com.orchestrator.proto.ActivityTaskServiceGrpcKt
 import com.orchestrator.proto.PollTaskRequest
-import jakarta.annotation.PreDestroy
 import kotlinx.coroutines.*
 import org.springframework.stereotype.Service
 
@@ -52,7 +51,6 @@ class DefaultActivityWorker(
         activityTaskPollingService.submitResult(activityResultReport)
     }
 
-    @PreDestroy
     override fun stopPollingTasks() {
         job?.cancel()
     }

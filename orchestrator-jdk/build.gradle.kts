@@ -18,8 +18,9 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
 
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
-
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
+    implementation("org.springframework:spring-context")
+    
     implementation("io.grpc:grpc-kotlin-stub:1.4.0")
     implementation("io.grpc:grpc-protobuf:1.56.0")
     implementation("io.grpc:grpc-stub:1.56.0")
