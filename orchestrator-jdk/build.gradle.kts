@@ -18,7 +18,7 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
 
-    implementation("org.springframework.boot:spring-boot-starter-webflux")     // WebFlux (reactive)
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     implementation("io.grpc:grpc-kotlin-stub:1.4.0")
     implementation("io.grpc:grpc-protobuf:1.56.0")
@@ -69,7 +69,7 @@ sourceSets {
 publishing {
     publications {
         create<MavenPublication>("mavenJava") {
-            from(components["java"]) // для jar
+            from(components["java"])
             groupId = "com.orchestrator.framework"
             artifactId = project.name
             version = "0.0.1"

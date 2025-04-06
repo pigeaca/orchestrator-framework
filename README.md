@@ -60,14 +60,14 @@ orchestration(
     // === Step 1: Create Account ===
     val createAccountStep = step(
         type = "createAccount", queue = "account-queue",
-        call = activity(UserService::class).call(UserService::createUser) {
+        call = activity(UserService::class).callSuspend(UserService::createUser) {
             val request = useRequest(definitionContext)
             CreateUserInput(email = request.username, phone = request.displayName)
         },
         rollbackStep = { currentStep ->
             rollbackStep(
                 type = "deleteAccount", queue = "account-queue",
-                call = activity(UserService::class).call(UserService::removeUser) {
+                call = activity(UserService::class).callSuspend(UserService::removeUser) {
                     val result = resultOf(currentStep)
                     result?.userId
                 }
@@ -78,7 +78,7 @@ orchestration(
     // === Step 2: Create Key ===
     step(
         type = "createAccountKey", queue = "key-queue",
-        call = activity(UserKeyService::class).call(UserKeyService::createUserKey) {
+        call = activity(UserKeyService::class).callSuspend(UserKeyService::createUserKey) {
             val request = useRequest(definitionContext)
             val user = resultOf(createAccountStep) ?: return@call null
             CreateKey(accountId = user.userId, key = request.key)
@@ -86,7 +86,7 @@ orchestration(
         rollbackStep = { currentStep ->
             rollbackStep(
                 type = "deleteKey", queue = "key-queue",
-                call = activity(UserKeyService::class).call(UserKeyService::removeUserKey) {
+                call = activity(UserKeyService::class).callSuspend(UserKeyService::removeUserKey) {
                     val keyResult = resultOf(currentStep)
                     keyResult?.keyId
                 }
@@ -182,6 +182,10 @@ The **Spring Boot integration** will:
 - [ ] Cross-region worker distribution
 
 ---
+
+<p align="center">
+  <img src="docs/readmi-picture.png" alt="Choose your engine wisely" width="1024" height=""/>
+</p>
 
 ## 📜 License
 
