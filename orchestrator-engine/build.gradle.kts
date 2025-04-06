@@ -33,6 +33,10 @@ dependencies {
     runtimeOnly("io.grpc:grpc-netty-shaded:1.56.0")
 }
 
+tasks.getByName<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {
+    archiveFileName.set("orchestrator-engine.jar")
+}
+
 tasks.test {
     useJUnitPlatform()
 }

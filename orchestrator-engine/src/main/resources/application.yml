@@ -1,15 +1,20 @@
 spring:
   application:
-    name: ${application.name:orcestrator-engine}
-    version: 1.0.0
+    name: ${APPLICATION_NAME:orchestrator-engine}
+    version: ${APPLICATION_VERSION:1.0.0}
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 server:
-  port: ${custom.server.port:8000}
+  port: ${SERVER_PORT:8000}
 
 grpc:
   server:
-    port: 8100
+    port: ${GRPC_PORT:8100}
 
 logging:
   level:
-    root: INFO
+    root: ${LOG_LEVEL:INFO}
