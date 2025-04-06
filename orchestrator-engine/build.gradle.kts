@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.orchestrator.framework"
-version = "1.0-SNAPSHOT"
+version = "0.0.1-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -15,6 +15,9 @@ repositories {
 dependencies {
     testImplementation(kotlin("test"))
     implementation(project(":orchestrator-jdk"))
+
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
 
     implementation("io.grpc:grpc-kotlin-stub:1.4.0")
     implementation("io.grpc:grpc-protobuf:1.56.0")

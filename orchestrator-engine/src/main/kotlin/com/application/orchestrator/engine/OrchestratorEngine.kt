@@ -6,9 +6,7 @@ import com.application.orchestrator.service.activity.ActivityQueueManager
 import com.application.orchestrator.service.interpreter.InterpreterQueueManager
 import com.application.orchestrator.service.interpreter.toActivityTask
 import com.application.orchestrator.service.interpreter.toModel
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.protobuf.ByteString
-import com.orchestrator.activity.test.CreateUserResponse
 import com.orchestrator.interpreter.dsl.ExecutionPlan
 import com.orchestrator.proto.ActivityResult
 import com.orchestrator.proto.InterpreterWorkerResult

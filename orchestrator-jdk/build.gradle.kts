@@ -5,6 +5,7 @@ plugins {
     id("org.springframework.boot") version "3.2.0"
     id("io.spring.dependency-management") version "1.1.3"
     id("com.google.protobuf") version "0.9.4"
+    `maven-publish`
 }
 
 group = "com.orchestrator.framework"
@@ -16,6 +17,8 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+
+    implementation("org.springframework.boot:spring-boot-starter-webflux")     // WebFlux (reactive)
 
     implementation("io.grpc:grpc-kotlin-stub:1.4.0")
     implementation("io.grpc:grpc-protobuf:1.56.0")
@@ -63,6 +66,20 @@ sourceSets {
     }
 }
 
+publishing {
+    publications {
+        create<MavenPublication>("mavenJava") {
+            from(components["java"]) // для jar
+            groupId = "com.orchestrator.framework"
+            artifactId = project.name
+            version = "0.0.1"
+        }
+    }
+
+    repositories {
+        mavenLocal()
+    }
+}
 
 tasks.test {
     useJUnitPlatform()

@@ -2,6 +2,7 @@ package com.orchestrator.interpreter.dsl
 
 import kotlin.reflect.KClass
 import kotlin.reflect.KFunction2
+import kotlin.reflect.KSuspendFunction2
 
 // ========== Core Types ==========
 
@@ -131,6 +132,13 @@ fun <Input, Output> rollbackStep(
 class ActivityBuilder<Activity : Any>(private val service: KClass<Activity>) {
     fun <Input, Output> call(
         method: KFunction2<Activity, Input, Output>,
+        input: suspend StepContext.() -> Input?
+    ): ActivityCall<Input, Output> {
+        return ActivityCall(serviceName = service.qualifiedName ?: "", methodName = method.name, input = input)
+    }
+
+    fun <Input, Output> suspendCall(
+        method: KSuspendFunction2<Activity, Input, Output>,
         input: suspend StepContext.() -> Input?
     ): ActivityCall<Input, Output> {
         return ActivityCall(serviceName = service.qualifiedName ?: "", methodName = method.name, input = input)
