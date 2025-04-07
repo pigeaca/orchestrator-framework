@@ -22,7 +22,7 @@ class RedisOrchestratorWorkflowData(
         val instance = WorkflowInstance(
             workflowId = workflowId,
             workflowName = sagaName,
-            request = request,
+            request = request.toByteArray(),
             response = null,
             workflowStatus = WorkflowStatus.IN_PROGRESS
         )
@@ -44,12 +44,13 @@ class RedisOrchestratorWorkflowData(
 
     override suspend fun pollWorkflowRequest(workflowId: String): ByteString? {
         val instance = load(workflowId) ?: return null
-        return instance.request
+        return ByteString.copyFrom(instance.request)
     }
 
     override suspend fun pollWorkflowResponse(workflowId: String): ByteString? {
         val instance = load(workflowId) ?: return null
-        return instance.response
+        instance.response ?: return null
+        return ByteString.copyFrom(instance.response)
     }
 
     private suspend fun load(id: String): WorkflowInstance? {

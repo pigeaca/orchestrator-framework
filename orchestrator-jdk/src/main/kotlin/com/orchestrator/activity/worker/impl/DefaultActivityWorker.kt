@@ -9,9 +9,7 @@ import com.orchestrator.proto.ActivityTask
 import com.orchestrator.proto.ActivityTaskServiceGrpcKt
 import com.orchestrator.proto.PollTaskRequest
 import kotlinx.coroutines.*
-import org.springframework.stereotype.Service
 
-@Service
 class DefaultActivityWorker(
     private val activityTaskPollingService: ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub,
     private val activityProcessor: ActivityProcessor
@@ -31,12 +29,13 @@ class DefaultActivityWorker(
     private fun CoroutineScope.processAsyncQueue(queue: String) = async {
         val pollTaskRequest = PollTaskRequest.newBuilder().setQueue(queue).build()
         val activityTaskResponse = activityTaskPollingService.pollTask(pollTaskRequest)
-        activityTaskResponse.task ?: return@async null
-        try {
-            val activityResultData = activityProcessor.processActivity(activityTaskResponse.task)
-            onSuccessSubmit(activityTaskResponse.task, activityResultData, queue)
-        } catch (e: Exception) {
-            onErrorSubmit(activityTaskResponse.task, queue, e)
+        if (activityTaskResponse.hasTask()) {
+            try {
+                val activityResultData = activityProcessor.processActivity(activityTaskResponse.task)
+                onSuccessSubmit(activityTaskResponse.task, activityResultData, queue)
+            } catch (e: Exception) {
+                onErrorSubmit(activityTaskResponse.task, queue, e)
+            }
         }
     }
 

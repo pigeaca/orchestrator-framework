@@ -1,8 +1,5 @@
 package com.orchestrator.activity.service
 
-import org.springframework.stereotype.Service
-
-@Service
 class ActivityServiceRegister {
     private val activities: MutableMap<String, Any> = mutableMapOf()
 

@@ -6,10 +6,11 @@ plugins {
     id("io.spring.dependency-management") version "1.1.3"
     id("com.google.protobuf") version "0.9.4"
     `maven-publish`
+    `java-library`
 }
 
 group = "com.orchestrator.framework"
-version = "1.0-SNAPSHOT"
+version = "0.0.5"
 
 repositories {
     mavenCentral()
@@ -73,13 +74,17 @@ publishing {
             from(components["java"])
             groupId = "com.orchestrator.framework"
             artifactId = project.name
-            version = "0.0.1"
+            version = project.version.toString()
         }
     }
 
     repositories {
         mavenLocal()
     }
+}
+
+java {
+    withSourcesJar()
 }
 
 tasks.test {

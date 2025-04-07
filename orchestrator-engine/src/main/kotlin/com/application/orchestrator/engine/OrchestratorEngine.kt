@@ -68,7 +68,7 @@ class OrchestratorEngine(
                 if (interpreterResult.taskType == "onFinish") {
                     logger.info("Task was completed")
                     orchestratorWorkflowData.updateSagaIfPresent(interpreterResult.sagaId) { _, workflowInstance ->
-                        workflowInstance.response = interpreterResult.output
+                        workflowInstance.response = interpreterResult.output.toByteArray()
                         workflowInstance
                     }
                 } else {
@@ -123,7 +123,7 @@ class OrchestratorEngine(
     private suspend fun startNextStep(activityResult: ActivityResult, executionPlan: ExecutionPlan) {
         orchestratorActivityResultData.updateActivityResul(
             activityResult.sagaId,
-            activityResult.stepId,
+            activityResult.stepType,
             activityResult.output
         )
         orchestratorSagaStepData.updateStepStatus(activityResult.sagaId, activityResult.stepId, StepStatus.COMPLETED)
@@ -181,8 +181,8 @@ data class WorkflowInstance(
     val workflowStatus: WorkflowStatus,
     val workflowId: String,
     val workflowName: String,
-    val request: ByteString,
-    var response: ByteString?,
+    val request: ByteArray,
+    var response: ByteArray?,
 )
 
 fun ExecutionStep.toWorkflowStep(stepId: String, sagaId: String): WorkflowStep = WorkflowStep(

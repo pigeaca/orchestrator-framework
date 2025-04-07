@@ -5,14 +5,12 @@ import com.orchestrator.activity.annotation.Activity
 import com.orchestrator.activity.service.ActivityServiceRegister
 import com.orchestrator.activity.worker.ActivityProcessor
 import com.orchestrator.proto.ActivityTask
-import org.springframework.stereotype.Service
 import kotlin.reflect.full.callSuspend
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.functions
 import kotlin.reflect.full.superclasses
 import kotlin.reflect.jvm.jvmErasure
 
-@Service
 class ActivityProcessorImpl(
     private val activityServiceRegister: ActivityServiceRegister
 ): ActivityProcessor {

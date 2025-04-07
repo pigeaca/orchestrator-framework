@@ -119,6 +119,7 @@ message DataResponse {
 
 service WorkflowEngineService {
   rpc StartWorkflow(StartWorkflowRequest) returns (StartWorkflowResponse);
+  rpc TryGetWorkflowResult(GetWorkflowResultRequest) returns (WorkflowResult);
 }
 
 message StartWorkflowRequest {
@@ -128,4 +129,12 @@ message StartWorkflowRequest {
 
 message StartWorkflowResponse {
   string sagaId = 1;
+}
+
+message GetWorkflowResultRequest {
+  string sagaId = 1;
+}
+
+message WorkflowResult {
+  bytes inputData = 1;
 }

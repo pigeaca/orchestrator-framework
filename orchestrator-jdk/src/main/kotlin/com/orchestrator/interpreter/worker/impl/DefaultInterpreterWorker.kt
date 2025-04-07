@@ -10,10 +10,8 @@ import com.orchestrator.proto.InterpreterWorkerResultList
 import com.orchestrator.proto.InterpreterWorkerServiceGrpcKt
 import com.orchestrator.proto.SendExecutionPlanRequest
 import kotlinx.coroutines.*
-import org.springframework.stereotype.Service
 
 
-@Service
 class DefaultInterpreterWorker(
     private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
     private val taskInterpreter: TaskInterpreter

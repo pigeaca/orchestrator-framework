@@ -6,7 +6,6 @@ import com.google.protobuf.ByteString
 import com.orchestrator.interpreter.dsl.*
 import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.proto.*
-import org.springframework.stereotype.Service
 import kotlin.reflect.KClass
 
 
@@ -39,7 +38,6 @@ class DefaultResultProvider(
     }
 }
 
-@Service
 class TaskInterpreterImpl(
     //TODO decouple request/polling
     private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub
