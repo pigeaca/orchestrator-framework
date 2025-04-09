@@ -21,6 +21,30 @@ import java.time.Duration
 import java.time.Instant
 import java.util.*
 
+/**
+ * Central component of the orchestration system responsible for managing the lifecycle
+ * of distributed workflows (sagas).
+ *
+ * <p>This engine coordinates the execution of steps, handles step results, manages rollback chains,
+ * and ensures state consistency across the distributed system.</p>
+ *
+ * <h2>Main Responsibilities:</h2>
+ * <ul>
+ *   <li>Initialize and start new saga workflows</li>
+ *   <li>Route step execution requests to the appropriate service queues</li>
+ *   <li>Track and store intermediate step results</li>
+ *   <li>Trigger rollback steps in case of failure</li>
+ *   <li>Provide polling interface for activity workers</li>
+ *   <li>Expose status of running/completed workflows</li>
+ * </ul>
+ *
+ * <p>The engine communicates with external components (activity workers, gRPC clients) via
+ * a reactive and pluggable protocol layer and stores workflow state in Redis for durability.</p>
+ *
+ * <h3>Typical Usage:</h3>
+ * <pre>{@code orchestratorEngine.startWorkflow("UserRegistration", inputPayload)}</pre>
+ *
+ */
 @Service
 class OrchestratorEngine(
     private val activityQueueManager: ActivityQueueManager,

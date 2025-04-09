@@ -2,6 +2,7 @@ package com.orchestrator.activity.worker.impl
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.protobuf.ByteString
+import com.orchestrator.activity.service.ActivityServiceRegister
 import com.orchestrator.activity.worker.ActivityProcessor
 import com.orchestrator.activity.worker.ActivityWorker
 import com.orchestrator.proto.ActivityResult
@@ -12,15 +13,17 @@ import kotlinx.coroutines.*
 
 class DefaultActivityWorker(
     private val activityTaskPollingService: ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub,
-    private val activityProcessor: ActivityProcessor
+    private val activityProcessor: ActivityProcessor,
+    private val activityServiceRegister: ActivityServiceRegister,
 ) : ActivityWorker {
     private val objectMapper = jacksonObjectMapper()
     private var job: Job? = null
 
-    override fun startPollingTasks(queues: List<String>) {
+    override fun startPollingTasks() {
+        val activityQueue = activityServiceRegister.getActivityQueue()
         this.job = CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             while (true) {
-                queues.map { queue -> processAsyncQueue(queue) }.forEach { it.await() }
+                activityQueue.map { queue -> processAsyncQueue(queue) }.forEach { it.await() }
                 delay(400)
             }
         }

@@ -1,6 +1,6 @@
 package com.orchestrator.activity.worker
 
 interface ActivityWorker {
-    fun startPollingTasks(queues: List<String>)
+    fun startPollingTasks()
     fun stopPollingTasks()
 }

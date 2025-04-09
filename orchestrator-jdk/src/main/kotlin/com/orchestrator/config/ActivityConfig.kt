@@ -25,12 +25,16 @@ open class ActivityConfig {
     @Bean
     open fun workflowActivity(
         activityTaskServiceCoroutineStub: ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub,
-        activityProcessor: ActivityProcessor
+        activityProcessor: ActivityProcessor,
+        activityServiceRegister: ActivityServiceRegister
     ): ActivityWorker {
-        return DefaultActivityWorker(
+        val activityWorker = DefaultActivityWorker(
             activityTaskServiceCoroutineStub,
-            activityProcessor
+            activityProcessor,
+            activityServiceRegister,
         )
+        activityWorker.startPollingTasks()
+        return activityWorker
     }
 
     @Bean

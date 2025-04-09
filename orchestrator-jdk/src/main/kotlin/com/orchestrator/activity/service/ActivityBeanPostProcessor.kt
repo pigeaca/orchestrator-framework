@@ -9,6 +9,7 @@ class ActivityBeanPostProcessor(private val activityServiceRegister: ActivitySer
         val clazz = AopProxyUtils.ultimateTargetClass(bean)
         clazz.interfaces.forEach { iface ->
             iface.getAnnotation(ActivityService::class.java)?.let {
+                activityServiceRegister.registerQueueActivity(it.queue)
                 activityServiceRegister.registerActivityService(iface.name, bean)
             }
         }
