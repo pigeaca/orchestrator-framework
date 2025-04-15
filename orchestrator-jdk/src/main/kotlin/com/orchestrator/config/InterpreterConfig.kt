@@ -1,5 +1,6 @@
 package com.orchestrator.config
 
+import com.orchestrator.interpreter.service.OrchestratorDefinitionProvider
 import com.orchestrator.interpreter.worker.InterpreterWorker
 import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.interpreter.worker.impl.DefaultInterpreterWorker
@@ -17,10 +18,14 @@ open class InterpreterConfig {
 
     @Bean
     open fun workflowInterpreter(
+        definitionProviders: List<OrchestratorDefinitionProvider>,
         interpreterWorkerServiceCoroutineStub: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
         taskInterpreter: TaskInterpreter
     ): InterpreterWorker {
-        return DefaultInterpreterWorker(interpreterWorkerServiceCoroutineStub, taskInterpreter)
+        val interpreterWorker =
+            DefaultInterpreterWorker(definitionProviders, interpreterWorkerServiceCoroutineStub, taskInterpreter)
+        interpreterWorker.startInterpreter()
+        return interpreterWorker
     }
 
     @Bean

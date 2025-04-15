@@ -3,6 +3,7 @@ package com.orchestrator.interpreter.worker.impl
 import com.orchestrator.interpreter.dsl.OrchestrationDefinition
 import com.orchestrator.interpreter.dsl.compileToExecutionPlan
 import com.orchestrator.interpreter.dsl.toProto
+import com.orchestrator.interpreter.service.OrchestratorDefinitionProvider
 import com.orchestrator.interpreter.worker.InterpreterWorker
 import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.proto.Empty
@@ -10,15 +11,17 @@ import com.orchestrator.proto.InterpreterWorkerResultList
 import com.orchestrator.proto.InterpreterWorkerServiceGrpcKt
 import com.orchestrator.proto.SendExecutionPlanRequest
 import kotlinx.coroutines.*
-
+import javax.annotation.PreDestroy
 
 class DefaultInterpreterWorker(
+    private val definitions: List<OrchestratorDefinitionProvider>,
     private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
     private val taskInterpreter: TaskInterpreter
 ) : InterpreterWorker {
     private var job: Job? = null
 
-    override fun startInterpreter(orchestrationDefinitions: List<OrchestrationDefinition<*, *>>) {
+    override fun startInterpreter() {
+        val orchestrationDefinitions: List<OrchestrationDefinition<*, *>> = definitions.map { it.definition() }
         val executionPlans = orchestrationDefinitions.map { it.compileToExecutionPlan() }
         val orchestrationDefinitionsGroup = orchestrationDefinitions.associateBy { it.name }
         this.job = CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
@@ -45,6 +48,7 @@ class DefaultInterpreterWorker(
         }
     }
 
+    @PreDestroy
     override fun stopInterpreter() {
         this.job?.cancel()
     }

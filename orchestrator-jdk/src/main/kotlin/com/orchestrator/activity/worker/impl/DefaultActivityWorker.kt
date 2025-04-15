@@ -10,6 +10,7 @@ import com.orchestrator.proto.ActivityTask
 import com.orchestrator.proto.ActivityTaskServiceGrpcKt
 import com.orchestrator.proto.PollTaskRequest
 import kotlinx.coroutines.*
+import javax.annotation.PreDestroy
 
 class DefaultActivityWorker(
     private val activityTaskPollingService: ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub,
@@ -53,6 +54,7 @@ class DefaultActivityWorker(
         activityTaskPollingService.submitResult(activityResultReport)
     }
 
+    @PreDestroy
     override fun stopPollingTasks() {
         job?.cancel()
     }
