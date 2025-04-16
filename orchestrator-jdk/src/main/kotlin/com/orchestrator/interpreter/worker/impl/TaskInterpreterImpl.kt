@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.google.protobuf.ByteString
 import com.orchestrator.interpreter.dsl.*
+import com.orchestrator.interpreter.service.InterpreterServiceRegister
 import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.proto.*
 import kotlin.reflect.KClass
@@ -40,7 +41,8 @@ class DefaultResultProvider(
 
 class TaskInterpreterImpl(
     //TODO decouple request/polling
-    private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub
+    private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
+    private val interpreterServiceRegister: InterpreterServiceRegister
 ) : TaskInterpreter {
     private val stepMap = mutableMapOf<String, Map<String, Step<*, *>>>()
     private val objectMapper = jacksonObjectMapper()
@@ -64,6 +66,8 @@ class TaskInterpreterImpl(
         if (it.type == "onFinish") {
             val result = if (it.success) orchestrationDefinition.onComplete?.invoke(stepContext) else
                 orchestrationDefinition.onFailure?.invoke(stepContext)
+
+            interpreterServiceRegister.invoke(it.sagaType, result)
 
             return@mapNotNull InterpreterWorkerResult.newBuilder()
                 .setServiceName("")

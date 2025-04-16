@@ -1,5 +1,7 @@
 package com.orchestrator.config
 
+import com.orchestrator.interpreter.service.InterpreterBeanPostProcessor
+import com.orchestrator.interpreter.service.InterpreterServiceRegister
 import com.orchestrator.interpreter.service.OrchestratorDefinitionProvider
 import com.orchestrator.interpreter.worker.InterpreterWorker
 import com.orchestrator.interpreter.worker.TaskInterpreter
@@ -29,10 +31,21 @@ open class InterpreterConfig {
     }
 
     @Bean
+    open fun interpreterBeanPostProcessor(interpreterServiceRegister: InterpreterServiceRegister) : InterpreterBeanPostProcessor {
+        return InterpreterBeanPostProcessor(interpreterServiceRegister)
+    }
+
+    @Bean
+    open fun interpreterServiceRegister(): InterpreterServiceRegister {
+        return InterpreterServiceRegister()
+    }
+
+    @Bean
     open fun taskInterpreter(
+        interpreterServiceRegister: InterpreterServiceRegister,
         interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub
     ) : TaskInterpreter {
-        return TaskInterpreterImpl(interpreterWorkerTaskPollingService)
+        return TaskInterpreterImpl(interpreterWorkerTaskPollingService, interpreterServiceRegister)
     }
 
     @Bean
