@@ -9,7 +9,7 @@ class ActivityServiceRegister {
     }
 
     fun registerQueueActivity(queue: String) {
-        activities[queue] = queue
+        activityQueues.add(queue)
     }
 
     fun getActivityQueue(): Set<String> = activityQueues
