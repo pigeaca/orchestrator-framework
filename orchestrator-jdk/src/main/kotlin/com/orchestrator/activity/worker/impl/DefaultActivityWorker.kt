@@ -5,6 +5,7 @@ import com.google.protobuf.ByteString
 import com.orchestrator.activity.service.ActivityServiceRegister
 import com.orchestrator.activity.worker.ActivityProcessor
 import com.orchestrator.activity.worker.ActivityWorker
+import com.orchestrator.config.ActivityProperties
 import com.orchestrator.proto.ActivityResult
 import com.orchestrator.proto.ActivityTask
 import com.orchestrator.proto.ActivityTaskServiceGrpcKt
@@ -16,6 +17,7 @@ class DefaultActivityWorker(
     private val activityTaskPollingService: ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub,
     private val activityProcessor: ActivityProcessor,
     private val activityServiceRegister: ActivityServiceRegister,
+    private val activityProperties: ActivityProperties
 ) : ActivityWorker {
     private val objectMapper = jacksonObjectMapper()
     private var job: Job? = null
@@ -25,7 +27,7 @@ class DefaultActivityWorker(
         this.job = CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
             while (true) {
                 activityQueue.map { queue -> processAsyncQueue(queue) }.forEach { it.await() }
-                delay(400)
+                delay(activityProperties.fetchDelay)
             }
         }
     }

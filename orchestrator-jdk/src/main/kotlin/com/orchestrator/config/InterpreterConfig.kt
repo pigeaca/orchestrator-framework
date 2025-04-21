@@ -11,27 +11,34 @@ import com.orchestrator.proto.InterpreterWorkerServiceGrpcKt
 import io.grpc.ManagedChannel
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
+import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
 @ConditionalOnProperty(prefix = "workflow.role", name = ["mode"], havingValue = "interpreter")
+@EnableConfigurationProperties(InterpreterProperties::class)
 open class InterpreterConfig {
 
     @Bean
     open fun workflowInterpreter(
         definitionProviders: List<OrchestratorDefinitionProvider>,
         interpreterWorkerServiceCoroutineStub: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
-        taskInterpreter: TaskInterpreter
+        taskInterpreter: TaskInterpreter,
+        interpreterProperties: InterpreterProperties
     ): InterpreterWorker {
-        val interpreterWorker =
-            DefaultInterpreterWorker(definitionProviders, interpreterWorkerServiceCoroutineStub, taskInterpreter)
+        val interpreterWorker = DefaultInterpreterWorker(
+                definitionProviders,
+                interpreterWorkerServiceCoroutineStub,
+                taskInterpreter,
+                interpreterProperties
+            )
         interpreterWorker.startInterpreter()
         return interpreterWorker
     }
 
     @Bean
-    open fun interpreterBeanPostProcessor(interpreterServiceRegister: InterpreterServiceRegister) : InterpreterBeanPostProcessor {
+    open fun interpreterBeanPostProcessor(interpreterServiceRegister: InterpreterServiceRegister): InterpreterBeanPostProcessor {
         return InterpreterBeanPostProcessor(interpreterServiceRegister)
     }
 
@@ -43,8 +50,9 @@ open class InterpreterConfig {
     @Bean
     open fun taskInterpreter(
         interpreterServiceRegister: InterpreterServiceRegister,
-        interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub
-    ) : TaskInterpreter {
+        interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
+        interpreterProperties: InterpreterProperties
+    ): TaskInterpreter {
         return TaskInterpreterImpl(interpreterWorkerTaskPollingService, interpreterServiceRegister)
     }
 

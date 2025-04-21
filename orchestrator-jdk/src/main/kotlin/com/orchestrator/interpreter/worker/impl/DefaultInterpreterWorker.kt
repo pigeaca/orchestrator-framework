@@ -1,5 +1,6 @@
 package com.orchestrator.interpreter.worker.impl
 
+import com.orchestrator.config.InterpreterProperties
 import com.orchestrator.interpreter.dsl.OrchestrationDefinition
 import com.orchestrator.interpreter.dsl.compileToExecutionPlan
 import com.orchestrator.interpreter.dsl.toProto
@@ -16,7 +17,8 @@ import javax.annotation.PreDestroy
 class DefaultInterpreterWorker(
     private val definitions: List<OrchestratorDefinitionProvider>,
     private val interpreterWorkerTaskPollingService: InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub,
-    private val taskInterpreter: TaskInterpreter
+    private val taskInterpreter: TaskInterpreter,
+    private val  interpreterProperties: InterpreterProperties
 ) : InterpreterWorker {
     private var job: Job? = null
 
@@ -43,7 +45,7 @@ class DefaultInterpreterWorker(
                         .addAllResults(interpreterWorkerResults)
                         .build())
                 }
-                delay(400)
+                delay(interpreterProperties.fetchDelay)
             }
         }
     }
