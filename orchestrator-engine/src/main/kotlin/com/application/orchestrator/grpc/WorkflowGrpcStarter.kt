@@ -1,7 +1,7 @@
 package com.application.orchestrator.grpc
 
 import com.application.orchestrator.data.OrchestratorWorkflowData
-import com.application.orchestrator.engine.OrchestratorEngine
+import com.application.orchestrator.engine.OrchestratorEngineInterface
 import com.google.protobuf.ByteString
 import com.orchestrator.proto.GetWorkflowResultRequest
 import com.orchestrator.proto.StartWorkflowRequest
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service
 
 @Service
 class WorkflowGrpcStarter(
-    private val orchestratorEngine: OrchestratorEngine,
+    private val orchestratorEngine: OrchestratorEngineInterface,
     private val orchestratorWorkflowData: OrchestratorWorkflowData
 ) : WorkflowEngineServiceCoroutineImplBase() {
 

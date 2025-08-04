@@ -24,6 +24,7 @@ data class OrchestrationDefinition<Request : Any, Response : Any>(
     val workflowRequest: KClass<Request>,
     val workflowResponse: KClass<Response>,
     val steps: List<Step<*, *>>,
+    val version: String = "1.0.0",
 
     val onComplete: (suspend StepContext.() -> Response)? = null,
     val onFailure: (suspend StepContext.() -> Response)? = null
@@ -50,9 +51,10 @@ fun <Request : Any, Response : Any> orchestration(
     name: String,
     workflowRequest: KClass<Request>,
     workflowResponse: KClass<Response>,
+    version: String = "1.0.0",
     block: OrchestrationBuilder<Request, Response>.(context: DefinitionContext<Request, Response>) -> Unit
 ): OrchestrationDefinition<Request, Response> {
-    val builder = OrchestrationBuilder(name, workflowRequest, workflowResponse)
+    val builder = OrchestrationBuilder(name, workflowRequest, workflowResponse, version)
     builder.block(DefinitionContext(name, workflowRequest, workflowResponse))
     val orchestrationDefinition = builder.build()
     return orchestrationDefinition
@@ -67,7 +69,8 @@ data class DefinitionContext<Request : Any, Response : Any>(
 class OrchestrationBuilder<Request : Any, Response : Any>(
     private val name: String,
     private val workflowRequest: KClass<Request>,
-    private val workflowResponse: KClass<Response>
+    private val workflowResponse: KClass<Response>,
+    private val version: String = "1.0.0"
 ) {
     private val steps = mutableListOf<Step<*, *>>()
 
@@ -113,6 +116,7 @@ class OrchestrationBuilder<Request : Any, Response : Any>(
         workflowRequest,
         workflowResponse,
         steps,
+        version,
         onComplete = completeBlock,
         onFailure = failureBlock
     )
@@ -200,31 +204,43 @@ fun OrchestrationDefinition<*, *>.compileToExecutionPlan(): ExecutionPlan {
 
     return ExecutionPlan(
         name = name,
-        steps = executionSteps
+        steps = executionSteps,
+        version = version
     )
 }
 
 data class ExecutionPlan(
     val name: String,
-    val steps: List<ExecutionStep>
+    val steps: List<ExecutionStep>,
+    val version: String = "1.0.0"
 )
 
-fun ExecutionPlan.toProto(): com.orchestrator.proto.ExecutionPlan = com.orchestrator.proto.ExecutionPlan
-    .newBuilder()
-    .setName(name)
-    .addAllSteps(steps.map {
-        com.orchestrator.proto.ExecutionStep
-            .newBuilder()
-            .setQueue(it.queue)
-            .setIsRollback(it.isRollback)
-            .setSagaType(it.sagaType)
-            .setStepType(it.stepType)
-            .addAllDependencies(it.dependencies)
-            .addAllRollbackStepIds(it.rollbackStepIds)
-            .build()
+fun ExecutionPlan.toProto(): com.orchestrator.proto.ExecutionPlan {
+    val builder = com.orchestrator.proto.ExecutionPlan.newBuilder()
+        .setName(name)
+        .addAllSteps(steps.map {
+            com.orchestrator.proto.ExecutionStep
+                .newBuilder()
+                .setQueue(it.queue)
+                .setIsRollback(it.isRollback)
+                .setSagaType(it.sagaType)
+                .setStepType(it.stepType)
+                .addAllDependencies(it.dependencies)
+                .addAllRollbackStepIds(it.rollbackStepIds)
+                .build()
+        })
+    
+    // Use reflection to set the version field if the method exists
+    try {
+        val setVersionMethod = builder.javaClass.getMethod("setVersion", String::class.java)
+        setVersionMethod.invoke(builder, version)
+    } catch (e: Exception) {
+        // If the method doesn't exist yet, log a warning
+        println("Warning: setVersion method not found in ExecutionPlan.Builder. The version field will not be set.")
     }
-    )
-    .build()
+    
+    return builder.build()
+}
 
 data class ExecutionStep(
     val stepType: String,

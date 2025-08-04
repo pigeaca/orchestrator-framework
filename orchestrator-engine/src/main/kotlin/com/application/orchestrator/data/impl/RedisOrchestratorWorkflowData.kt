@@ -11,17 +11,28 @@ import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.stereotype.Service
 import java.util.function.BiFunction
 
+/**
+ * Redis implementation of OrchestratorWorkflowData.
+ * Manages workflow instances in Redis.
+ */
 @Service
 class RedisOrchestratorWorkflowData(
-    private val redisTemplate: ReactiveRedisTemplate<String, ByteArray>,
-    private val objectMapper: ObjectMapper = jacksonObjectMapper()
-) : OrchestratorWorkflowData {
+    redisTemplate: ReactiveRedisTemplate<String, ByteArray>,
+    objectMapper: ObjectMapper = jacksonObjectMapper()
+) : BaseRedisRepository<WorkflowInstance>(redisTemplate, objectMapper, WorkflowInstance::class.java), OrchestratorWorkflowData {
 
-    override fun createSagaInstance(workflowId: String, sagaName: String, request: ByteString) {
+    /**
+     * Creates a new workflow instance.
+     *
+     * @param workflowId The ID of the workflow
+     * @param workflowName The name of the workflow
+     * @param request The request data for the workflow
+     */
+    override fun createWorkflowInstance(workflowId: String, workflowName: String, request: ByteString) {
         val key = keyFor(workflowId)
         val instance = WorkflowInstance(
             workflowId = workflowId,
-            workflowName = sagaName,
+            workflowName = workflowName,
             request = request.toByteArray(),
             response = null,
             workflowStatus = WorkflowStatus.IN_PROGRESS
@@ -30,33 +41,38 @@ class RedisOrchestratorWorkflowData(
         redisTemplate.opsForValue().set(key, value).subscribe()
     }
 
-    override suspend fun updateSagaIfPresent(
+    /**
+     * Updates a workflow instance if it exists.
+     *
+     * @param workflowId The ID of the workflow
+     * @param updateFunction The function to apply to update the workflow instance
+     * @return The updated workflow instance, or null if not found
+     */
+    override suspend fun updateWorkflowIfPresent(
         workflowId: String,
         updateFunction: BiFunction<String, WorkflowInstance, WorkflowInstance>
     ): WorkflowInstance? {
         val key = keyFor(workflowId)
-        val current = redisTemplate.opsForValue().get(key).awaitFirstOrNull() ?: return null
-        val existing = objectMapper.readValue(current, WorkflowInstance::class.java)
+        val existing = load(key) ?: return null
         val updated = updateFunction.apply(workflowId, existing)
-        redisTemplate.opsForValue().set(key, objectMapper.writeValueAsBytes(updated)).awaitFirstOrNull()
+        save(key, updated)
         return updated
     }
 
     override suspend fun pollWorkflowRequest(workflowId: String): ByteString? {
-        val instance = load(workflowId) ?: return null
+        val instance = loadWorkflow(workflowId) ?: return null
         return ByteString.copyFrom(instance.request)
     }
 
     override suspend fun pollWorkflowResponse(workflowId: String): ByteString? {
-        val instance = load(workflowId) ?: return null
+        val instance = loadWorkflow(workflowId) ?: return null
         instance.response ?: return null
         return ByteString.copyFrom(instance.response)
     }
 
-    private suspend fun load(id: String): WorkflowInstance? {
+    private suspend fun loadWorkflow(id: String): WorkflowInstance? {
         val key = keyFor(id)
-        val bytes = redisTemplate.opsForValue().get(key).awaitFirstOrNull() ?: return null
-        return objectMapper.readValue(bytes, WorkflowInstance::class.java)
+        return load(key)
     }
 
     private fun keyFor(workflowId: String) = "workflow_instance:$workflowId"

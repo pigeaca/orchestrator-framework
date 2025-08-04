@@ -4,9 +4,14 @@ import com.application.orchestrator.data.impl.WorkflowStep
 import com.application.orchestrator.engine.StepStatus
 import java.time.Instant
 
-interface OrchestratorSagaStepData {
-    suspend fun saveStep(sagaId: String, step: WorkflowStep)
-    suspend fun loadAllSteps(sagaId: String): List<WorkflowStep>
-    suspend fun updateStepStatus(sagaId: String, stepId: String, status: StepStatus)
-    suspend fun findStepsByStatus(sagaId: String, status: StepStatus): List<WorkflowStep>
-    suspend fun findStepsTimedOut(now: Instant): List<WorkflowStep>}
+/**
+ * Interface for managing workflow steps data.
+ * Provides methods to save, load, and update workflow steps.
+ */
+interface OrchestratorWorkflowStepData {
+    suspend fun saveStep(workflowId: String, step: WorkflowStep)
+    suspend fun loadAllSteps(workflowId: String): List<WorkflowStep>
+    suspend fun updateStepStatus(workflowId: String, stepId: String, status: StepStatus)
+    suspend fun findStepsByStatus(workflowId: String, status: StepStatus): List<WorkflowStep>
+    suspend fun findStepsTimedOut(now: Instant): List<WorkflowStep>
+}

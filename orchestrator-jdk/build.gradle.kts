@@ -32,6 +32,10 @@ dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     implementation("com.google.protobuf:protobuf-java:3.25.0")
+    
+    // Logging
+    implementation("org.slf4j:slf4j-api:1.7.36")
+    implementation("ch.qos.logback:logback-classic:1.2.11")
 }
 
 protobuf {

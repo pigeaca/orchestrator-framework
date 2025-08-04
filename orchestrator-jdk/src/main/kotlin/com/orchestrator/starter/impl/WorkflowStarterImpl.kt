@@ -7,7 +7,9 @@ import com.orchestrator.proto.GetWorkflowResultRequest
 import com.orchestrator.proto.StartWorkflowRequest
 import com.orchestrator.proto.WorkflowEngineServiceGrpcKt
 import com.orchestrator.starter.WorkflowStarter
+import com.orchestrator.util.ValidationUtils
 import kotlinx.coroutines.*
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeoutException
@@ -16,18 +18,46 @@ import java.util.concurrent.TimeoutException
 class WorkflowStarterImpl(
     private val workflowEngineServiceCoroutineStub: WorkflowEngineServiceGrpcKt.WorkflowEngineServiceCoroutineStub,
 ) : WorkflowStarter {
+    private val logger = LoggerFactory.getLogger(WorkflowStarterImpl::class.java)
     private val objectMapper = jacksonObjectMapper()
     private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    override suspend fun <D, R> startWorkflow(workflowName: String, inputData: D): CompletableFuture<R> {
+    /**
+     * Starts a workflow execution with the given name and input data.
+     *
+     * @param workflowName The name of the workflow to start
+     * @param inputData The input data for the workflow
+     * @param version Optional version of the workflow to start, defaults to latest version
+     * @return A CompletableFuture that will be completed with the workflow result
+     * @throws IllegalArgumentException if workflowName is empty or inputData is null
+     */
+    override suspend fun <D, R> startWorkflow(
+        workflowName: String, 
+        inputData: D, 
+        version: String?
+    ): CompletableFuture<R> {
+        // Validate input parameters
+        ValidationUtils.validateNotEmpty(workflowName, "workflowName")
+        ValidationUtils.validateNotNull(inputData, "inputData")
+        
+        logger.info("Starting workflow: $workflowName${version?.let { ", version: $it" } ?: ""}")
+        
         val valueAsBytes = objectMapper.writeValueAsBytes(inputData)
-        val request = StartWorkflowRequest.newBuilder()
+        val requestBuilder = StartWorkflowRequest.newBuilder()
             .setSagaName(workflowName)
             .setInputData(ByteString.copyFrom(valueAsBytes))
-            .build()
+            
+        // Add version if specified
+        if (version != null) {
+            requestBuilder.setVersion(version)
+        }
+        
+        val request = requestBuilder.build()
 
         val response = workflowEngineServiceCoroutineStub.startWorkflow(request)
         val sagaId = response.sagaId
+        
+        logger.info("Workflow started with ID: $sagaId")
 
         val future = CompletableFuture<R>()
         val timeoutMillis = 30_000L
@@ -41,6 +71,7 @@ class WorkflowStarterImpl(
 
                 val now = System.currentTimeMillis()
                 if (now - startedAt > timeoutMillis) {
+                    logger.warn("Workflow $sagaId timed out after ${timeoutMillis}ms")
                     future.completeExceptionally(TimeoutException("Workflow $sagaId timed out"))
                     break
                 }
@@ -51,6 +82,7 @@ class WorkflowStarterImpl(
 
                 if (result.inputData != null && !result.inputData.isEmpty) {
                     val value = objectMapper.readValue(result.inputData.toByteArray(), object : TypeReference<R>() {})
+                    logger.info("Workflow $sagaId completed successfully")
                     future.complete(value)
                     break
                 }

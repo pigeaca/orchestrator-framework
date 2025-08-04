@@ -66,6 +66,7 @@ message ExecutionStep {
 message ExecutionPlan {
   string name = 1;
   repeated ExecutionStep steps = 2;
+  string version = 3;
 }
 
 service ActivityTaskService {
@@ -125,6 +126,7 @@ service WorkflowEngineService {
 message StartWorkflowRequest {
   string sagaName = 1;
   bytes inputData = 2;
+  string version = 3;  // Optional version, if not specified the latest version will be used
 }
 
 message StartWorkflowResponse {
