@@ -64,25 +64,33 @@ open class RedisOrchestratorWorkflowData(
         return updated
     }
 
+    /**
+     * Loads a workflow request from cache or Redis.
+     * Uses the workflow ID as the cache key.
+     *
+     * @param workflowId The workflow ID
+     * @return The workflow request, or null if not found
+     */
+    @Cacheable(value = [WORKFLOW_CACHE], key = "#workflowId", unless = "#result == null")
     override suspend fun pollWorkflowRequest(workflowId: String): ByteString? {
         val instance = loadWorkflow(workflowId) ?: return null
         return ByteStringUtil.wrapBytes(instance.request)
     }
 
+    /**
+     * Loads a workflow result from cache or Redis.
+     * Uses the workflow ID as the cache key.
+     *
+     * @param workflowId The workflow ID
+     * @return The workflow result, or null if not found
+     */
+    @Cacheable(value = [WORKFLOW_CACHE], key = "#workflowId", unless = "#result == null")
     override suspend fun pollWorkflowResponse(workflowId: String): ByteString? {
         val instance = loadWorkflow(workflowId) ?: return null
         instance.response ?: return null
         return ByteStringUtil.wrapBytes(instance.response)
     }
 
-    /**
-     * Loads a workflow instance from cache or Redis.
-     * Uses the workflow ID as the cache key.
-     *
-     * @param id The workflow ID
-     * @return The workflow instance, or null if not found
-     */
-    @Cacheable(value = [WORKFLOW_CACHE], key = "#id", unless = "#result == null")
     protected open suspend fun loadWorkflow(id: String): WorkflowInstance? {
         val key = keyFor(id)
         return load(key)

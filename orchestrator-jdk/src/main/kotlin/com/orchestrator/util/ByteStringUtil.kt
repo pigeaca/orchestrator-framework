@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JavaType
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.protobuf.ByteString
 import com.google.protobuf.UnsafeByteOperations
-import java.lang.reflect.Type
 import java.nio.ByteBuffer
 
 /**
@@ -66,7 +65,7 @@ object ByteStringUtil {
      * @return The deserialized object
      */
     fun <T> fromByteString(byteString: ByteString?, clazz: Class<T>, objectMapper: ObjectMapper): T? {
-        if (byteString == null || byteString.isEmpty()) return null
+        if (byteString == null || byteString.isEmpty) return null
         
         return objectMapper.readValue(byteString.toByteArray(), clazz)
     }
@@ -80,7 +79,7 @@ object ByteStringUtil {
      * @return The deserialized object
      */
     fun <T> fromByteString(byteString: ByteString?, typeReference: TypeReference<T>, objectMapper: ObjectMapper): T? {
-        if (byteString == null || byteString.isEmpty()) return null
+        if (byteString == null || byteString.isEmpty) return null
         
         return objectMapper.readValue(byteString.toByteArray(), typeReference)
     }
@@ -94,7 +93,7 @@ object ByteStringUtil {
      * @return The deserialized object
      */
     fun <T> fromByteString(byteString: ByteString?, javaType: JavaType, objectMapper: ObjectMapper): T? {
-        if (byteString == null || byteString.isEmpty()) return null
+        if (byteString == null || byteString.isEmpty) return null
         
         return objectMapper.readValue(byteString.toByteArray(), javaType)
     }
