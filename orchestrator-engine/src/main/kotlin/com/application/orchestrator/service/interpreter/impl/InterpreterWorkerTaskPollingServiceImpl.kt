@@ -40,12 +40,32 @@ class InterpreterWorkerTaskPollingServiceImpl(
 
     /**
      * Polls for interpreter worker tasks.
+     * This method is maintained for backward compatibility.
      *
      * @return A list of interpreter worker tasks
      */
     override suspend fun pollTasks(): List<InterpreterWorkerTask> {
-        logger.debug("Polling for interpreter tasks")
+        logger.debug("Polling for interpreter tasks (legacy mode)")
         return interpreterQueueManager.pollTasks()
+    }
+    
+    /**
+     * Polls for interpreter worker tasks for a specific worker.
+     * Used for horizontal scaling to distribute tasks among multiple workers.
+     *
+     * @param workerId The unique ID of the worker
+     * @param workerCount The total number of workers in the cluster
+     * @param batchSize The maximum number of tasks to return
+     * @return A list of interpreter worker tasks assigned to this worker
+     * @throws IllegalArgumentException if any parameter is invalid
+     */
+    override suspend fun pollTasksForWorker(workerId: String, workerCount: Int, batchSize: Int): List<InterpreterWorkerTask> {
+        ValidationUtils.validateNotEmpty(workerId, "workerId")
+        ValidationUtils.validatePositive(workerCount, "workerCount")
+        ValidationUtils.validatePositive(batchSize, "batchSize")
+        
+        logger.debug("Polling for interpreter tasks (worker=$workerId, count=$workerCount, batchSize=$batchSize)")
+        return interpreterQueueManager.pollTasksForWorker(workerId, workerCount, batchSize)
     }
 
     /**

@@ -1,22 +1,26 @@
 package com.application.orchestrator.config
 
+import io.lettuce.core.ClientOptions
+import io.lettuce.core.resource.ClientResources
+import io.lettuce.core.resource.DefaultClientResources
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory
+import org.springframework.data.redis.connection.RedisPassword
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration
 import org.springframework.data.redis.core.ReactiveRedisTemplate
 import org.springframework.data.redis.serializer.RedisSerializationContext
 import org.springframework.data.redis.serializer.RedisSerializer
 import org.springframework.data.redis.serializer.StringRedisSerializer
-import io.lettuce.core.ClientOptions
-import io.lettuce.core.resource.ClientResources
-import io.lettuce.core.resource.DefaultClientResources
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import java.time.Duration
 
+/**
+ * Redis configuration with connection pooling support.
+ * Uses Lettuce client with connection pooling for better performance under high load.
+ */
 @Configuration
 open class RedisConfig(private val redisProperties: RedisProperties) {
 
@@ -30,10 +34,11 @@ open class RedisConfig(private val redisProperties: RedisProperties) {
         val standaloneConfig = RedisStandaloneConfiguration().apply {
             hostName = redisProperties.host
             port = redisProperties.port
-            redisProperties.password?.let { password = it }
+            redisProperties.password?.let { password = RedisPassword.of(it) }
             database = redisProperties.database
         }
 
+        // Configure connection pooling
         val poolConfig = GenericObjectPoolConfig<Any>().apply {
             maxIdle = redisProperties.pool.maxIdle
             minIdle = redisProperties.pool.minIdle

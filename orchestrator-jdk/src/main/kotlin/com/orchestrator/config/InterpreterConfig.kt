@@ -8,6 +8,7 @@ import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.interpreter.worker.impl.DefaultInterpreterWorker
 import com.orchestrator.interpreter.worker.impl.TaskInterpreterImpl
 import com.orchestrator.proto.InterpreterWorkerServiceGrpcKt
+import io.grpc.Channel
 import io.grpc.ManagedChannel
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -57,7 +58,7 @@ open class InterpreterConfig {
     }
 
     @Bean
-    open fun interpreterWorkerStub(@Qualifier("engine") channel: ManagedChannel): InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub =
+    open fun interpreterWorkerStub(@Qualifier("engine") channel: Channel): InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub =
         InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineStub(channel)
 
 }

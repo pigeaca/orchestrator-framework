@@ -18,6 +18,13 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
+    implementation("org.springframework.boot:spring-boot-starter-cache")
+    
+    // Redis connection pooling
+    implementation("org.apache.commons:commons-pool2:2.11.1")
+    
+    // Caching
+    implementation("com.github.ben-manes.caffeine:caffeine:3.1.8")
 
     implementation("io.grpc:grpc-kotlin-stub:1.4.0")
     implementation("io.grpc:grpc-protobuf:1.56.0")

@@ -249,7 +249,6 @@ class OrchestratorEngine(
 
         try {
             logger.info("Received activity result activityResult=${activityResult}")
-            // Using sagaName from ActivityResult proto but treating it as workflowName
             val executionPlan = getExecutionPlanOrReturn(activityResult.sagaName)
             
             if (executionPlan == null) {

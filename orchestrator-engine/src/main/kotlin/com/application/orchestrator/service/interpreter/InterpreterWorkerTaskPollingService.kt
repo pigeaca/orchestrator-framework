@@ -9,9 +9,30 @@ import com.orchestrator.proto.InterpreterWorkerTask
 
 interface InterpreterWorkerTaskPollingService {
     suspend fun sendExecutionPlain(executionPlans: List<ExecutionPlan>)
+    
+    /**
+     * Polls for all available interpreter tasks.
+     * This method is maintained for backward compatibility.
+     * 
+     * @return A list of interpreter worker tasks
+     */
     suspend fun pollTasks(): List<InterpreterWorkerTask>
+    
+    /**
+     * Polls for available interpreter tasks for a specific worker.
+     * Used for horizontal scaling to distribute tasks among multiple workers.
+     * 
+     * @param workerId The unique ID of the worker
+     * @param workerCount The total number of workers in the cluster
+     * @param batchSize The maximum number of tasks to return
+     * @return A list of interpreter worker tasks assigned to this worker
+     */
+    suspend fun pollTasksForWorker(workerId: String, workerCount: Int, batchSize: Int): List<InterpreterWorkerTask>
+    
     suspend fun submitResults(interpreterResults: List<InterpreterWorkerResult>)
+
     suspend fun pollData(sagaId: String, stepId: String, stepName: String): ByteString
+
     suspend fun pollWorkflowRequest(sagaId: String): ByteString
 }
 

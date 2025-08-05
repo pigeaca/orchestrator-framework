@@ -7,6 +7,7 @@ import com.orchestrator.activity.worker.ActivityWorker
 import com.orchestrator.activity.worker.impl.ActivityProcessorImpl
 import com.orchestrator.activity.worker.impl.DefaultActivityWorker
 import com.orchestrator.proto.ActivityTaskServiceGrpcKt
+import io.grpc.Channel
 import io.grpc.ManagedChannel
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -52,6 +53,6 @@ open class ActivityConfig {
     }
 
     @Bean
-    open fun activityTaskServiceStub(@Qualifier("engine") channel: ManagedChannel): ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub =
+    open fun activityTaskServiceStub(@Qualifier("engine") channel: Channel): ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub =
         ActivityTaskServiceGrpcKt.ActivityTaskServiceCoroutineStub(channel)
 }

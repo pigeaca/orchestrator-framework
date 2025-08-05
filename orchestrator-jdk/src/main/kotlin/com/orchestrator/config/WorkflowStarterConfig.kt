@@ -3,6 +3,7 @@ package com.orchestrator.config
 import com.orchestrator.proto.WorkflowEngineServiceGrpcKt
 import com.orchestrator.starter.WorkflowStarter
 import com.orchestrator.starter.impl.WorkflowStarterImpl
+import io.grpc.Channel
 import io.grpc.ManagedChannel
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -19,6 +20,6 @@ open class WorkflowStarterConfig {
     }
 
     @Bean
-    open fun workflowStarterStub(@Qualifier("engine") channel: ManagedChannel): WorkflowEngineServiceGrpcKt.WorkflowEngineServiceCoroutineStub =
+    open fun workflowStarterStub(@Qualifier("engine") channel: Channel): WorkflowEngineServiceGrpcKt.WorkflowEngineServiceCoroutineStub =
         WorkflowEngineServiceGrpcKt.WorkflowEngineServiceCoroutineStub(channel)
 }

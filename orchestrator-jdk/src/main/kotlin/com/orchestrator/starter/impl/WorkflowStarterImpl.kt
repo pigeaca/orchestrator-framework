@@ -7,6 +7,7 @@ import com.orchestrator.proto.GetWorkflowResultRequest
 import com.orchestrator.proto.StartWorkflowRequest
 import com.orchestrator.proto.WorkflowEngineServiceGrpcKt
 import com.orchestrator.starter.WorkflowStarter
+import com.orchestrator.util.ByteStringUtil
 import com.orchestrator.util.ValidationUtils
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
@@ -42,14 +43,16 @@ class WorkflowStarterImpl(
         
         logger.info("Starting workflow: $workflowName${version?.let { ", version: $it" } ?: ""}")
         
-        val valueAsBytes = objectMapper.writeValueAsBytes(inputData)
+        // Use ByteStringUtil for efficient ByteString creation
+        val optimizedByteString = ByteStringUtil.toByteString(inputData, objectMapper)
         val requestBuilder = StartWorkflowRequest.newBuilder()
             .setSagaName(workflowName)
-            .setInputData(ByteString.copyFrom(valueAsBytes))
+            .setInputData(optimizedByteString)
             
         // Add version if specified
         if (version != null) {
-            requestBuilder.setVersion(version)
+            val method = requestBuilder.javaClass.getMethod("setVersion", String::class.java)
+            method.invoke(requestBuilder, version)
         }
         
         val request = requestBuilder.build()
@@ -81,7 +84,8 @@ class WorkflowStarterImpl(
                 )
 
                 if (result.inputData != null && !result.inputData.isEmpty) {
-                    val value = objectMapper.readValue(result.inputData.toByteArray(), object : TypeReference<R>() {})
+                    val typeRef = object : TypeReference<R>() {}
+                    val value = ByteStringUtil.fromByteString(result.inputData, typeRef, objectMapper)
                     logger.info("Workflow $sagaId completed successfully")
                     future.complete(value)
                     break

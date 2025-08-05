@@ -47,8 +47,6 @@ class CircuitBreakerInterceptor(
                     // Use the circuit breaker's public API to check if we can make the call
                     runBlocking {
                         circuitBreaker.executeWithCircuitBreaker {
-                            // This is just a check - the actual call happens below
-                            // The circuit breaker will record success when this lambda completes without exception
                             true
                         }
                     }

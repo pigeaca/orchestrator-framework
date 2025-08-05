@@ -13,6 +13,7 @@ import com.orchestrator.proto.InterpreterWorkerServiceGrpcKt
 import com.orchestrator.proto.SendExecutionPlanRequest
 import com.orchestrator.util.RetryHelper
 import com.orchestrator.util.ValidationUtils
+import io.grpc.Metadata
 import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import javax.annotation.PreDestroy
@@ -65,11 +66,16 @@ class DefaultInterpreterWorker(
             
             while (true) {
                 try {
-                    // Poll tasks with retry
+                    // Poll tasks with retry, using worker ID for horizontal scaling
+                    val metadata = Metadata()
+                    metadata.put(Metadata.Key.of("worker-id", Metadata.ASCII_STRING_MARSHALLER), interpreterProperties.workerId)
+                    metadata.put(Metadata.Key.of("worker-count", Metadata.ASCII_STRING_MARSHALLER), interpreterProperties.workerCount.toString())
+                    metadata.put(Metadata.Key.of("batch-size", Metadata.ASCII_STRING_MARSHALLER), interpreterProperties.batchSize.toString())
+                    
                     val interpreterWorkerTasks = RetryHelper.withRetryOrNull(maxAttempts = 3) {
-                        interpreterWorkerTaskPollingService.pollTasks(
-                            Empty.getDefaultInstance()
-                        )
+                        interpreterWorkerTaskPollingService
+                            .withInterceptors(io.grpc.stub.MetadataUtils.newAttachHeadersInterceptor(metadata))
+                            .pollTasks(Empty.getDefaultInstance())
                     } ?: continue // Skip this iteration if polling failed after retries
                     
                     if (interpreterWorkerTasks.tasksList.isNotEmpty()) {

@@ -235,7 +235,6 @@ fun ExecutionPlan.toProto(): com.orchestrator.proto.ExecutionPlan {
         val setVersionMethod = builder.javaClass.getMethod("setVersion", String::class.java)
         setVersionMethod.invoke(builder, version)
     } catch (e: Exception) {
-        // If the method doesn't exist yet, log a warning
         println("Warning: setVersion method not found in ExecutionPlan.Builder. The version field will not be set.")
     }
     

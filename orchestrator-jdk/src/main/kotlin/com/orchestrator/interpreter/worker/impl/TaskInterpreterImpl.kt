@@ -7,6 +7,7 @@ import com.orchestrator.interpreter.dsl.*
 import com.orchestrator.interpreter.service.InterpreterServiceRegister
 import com.orchestrator.interpreter.worker.TaskInterpreter
 import com.orchestrator.proto.*
+import com.orchestrator.util.ByteStringUtil
 import kotlin.reflect.KClass
 
 
@@ -28,14 +29,13 @@ class DefaultResultProvider(
         if (dataResponse.data.isEmpty) {
             return null
         }
-        val value = objectMapper.readValue(dataResponse.data.toByteArray(), requestType.java)
-        return value
+        return ByteStringUtil.fromByteString(dataResponse.data, requestType.java, objectMapper)
     }
 
     override suspend fun <T : Any> useRequest(requestType: KClass<T>): T {
         val pollWorkflowRequest = PollWorkflowRequestInput.newBuilder().setSagaId(sagaId).build()
         val dataResponse = interpreterWorkerTaskPollingService.pollWorkflowRequest(pollWorkflowRequest)
-        return objectMapper.readValue(dataResponse.data.toByteArray(), requestType.java)
+        return ByteStringUtil.fromByteString(dataResponse.data, requestType.java, objectMapper)!!
     }
 }
 
@@ -78,7 +78,7 @@ class TaskInterpreterImpl(
                 .setTaskType(it.type)
                 .setQueue(it.queue)
                 .setSuccess(true)
-                .setOutput(ByteString.copyFrom(objectMapper.writeValueAsBytes(result)))
+                .setOutput(ByteStringUtil.toByteString(result, objectMapper))
                 .build()
         }
 
@@ -86,7 +86,7 @@ class TaskInterpreterImpl(
         val step = stepMap[it.type] ?: return@mapNotNull null
 
         val activityPayload = getActivityPayload(step.call, stepContext)
-        val output = if (activityPayload == null) ByteString.EMPTY else ByteString.copyFrom(objectMapper.writeValueAsBytes(activityPayload))
+        val output = ByteStringUtil.toByteString(activityPayload, objectMapper)
         println("Task was interpreter stepId=${it.stepId} sagaId=${it.sagaId} type=${it.type}")
         InterpreterWorkerResult.newBuilder()
             .setServiceName(step.call.serviceName)

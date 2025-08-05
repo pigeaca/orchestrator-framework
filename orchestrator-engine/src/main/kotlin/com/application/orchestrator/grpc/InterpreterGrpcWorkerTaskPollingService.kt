@@ -4,12 +4,15 @@ import com.application.orchestrator.service.interpreter.InterpreterWorkerTaskPol
 import com.orchestrator.interpreter.dsl.ExecutionPlan
 import com.orchestrator.interpreter.dsl.ExecutionStep
 import com.orchestrator.proto.*
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 
 @Service
 class InterpreterGrpcWorkerTaskPollingService(
     private val interpreterGrpcWorkerTaskPollingService: InterpreterWorkerTaskPollingService
 ) : InterpreterWorkerServiceGrpcKt.InterpreterWorkerServiceCoroutineImplBase() {
+    private val logger = LoggerFactory.getLogger(InterpreterGrpcWorkerTaskPollingService::class.java)
+
     override suspend fun pollData(request: PollDataRequest): DataResponse {
         val data = interpreterGrpcWorkerTaskPollingService.pollData(request.sagaId, request.stepId, request.stepName)
         return DataResponse.newBuilder()
@@ -18,7 +21,12 @@ class InterpreterGrpcWorkerTaskPollingService(
     }
 
     override suspend fun pollTasks(request: Empty): InterpreterWorkerTaskList {
+        // For now, we'll use the legacy polling method
+        // In the future, we can extract worker information from the request context
+        // to support horizontal scaling
+        logger.debug("Polling for interpreter tasks")
         val interpreterWorkerTasks = interpreterGrpcWorkerTaskPollingService.pollTasks()
+        
         return InterpreterWorkerTaskList.newBuilder()
             .addAllTasks(interpreterWorkerTasks)
             .build()
